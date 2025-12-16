@@ -12,13 +12,11 @@
       <Private>true</Private>
     </Reference>
 
-    <!-- 선택: USB 플러그인 -->
     <Reference Include="ASControllerSDK.USB">
       <HintPath>..\..\lib\net472\ASControllerSDK.USB.dll</HintPath>
       <Private>true</Private>
     </Reference>
 
-    <!-- 선택: BLE 플러그인 -->
     <Reference Include="ASControllerSDK.BLE">
       <HintPath>..\..\lib\net472\ASControllerSDK.BLE.dll</HintPath>
       <Private>true</Private>
