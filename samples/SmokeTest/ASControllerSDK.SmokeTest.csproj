@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="ASControllerSDK">
+      <HintPath>..\..\lib\net472\ASControllerSDK.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+
+    <!-- 선택: USB 플러그인 -->
+    <Reference Include="ASControllerSDK.USB">
+      <HintPath>..\..\lib\net472\ASControllerSDK.USB.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+
+    <!-- 선택: BLE 플러그인 -->
+    <Reference Include="ASControllerSDK.BLE">
+      <HintPath>..\..\lib\net472\ASControllerSDK.BLE.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
