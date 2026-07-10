@@ -6,6 +6,8 @@
 
 **USB** および / または **BLE** 経由で Aroma Shooter デバイスに接続し、制御するための Windows .NET SDK です。
 
+> **重要 — 香りを噴射するには内部ブースターが必須です。** 噴射のたびに有効にしてください: シンプル API では `internalBooster: true`、強度 API では `internalBoosterIntensity > 0`。内部ブースターがオフの場合、香りは出ません。
+
 本 SDK は**単一の DLL** として提供されます:
 
 -   `ASControllerSDK.dll` — USB コントローラーと BLE コントローラー、および共通のモデル型を含みます。

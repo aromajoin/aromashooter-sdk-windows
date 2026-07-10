@@ -6,6 +6,8 @@
 
 A Windows .NET SDK for connecting to and controlling Aroma Shooter devices via **USB** and/or **BLE**.
 
+> **Important — the internal booster is required for scent to be emitted.** Enable it on every shoot: pass `internalBooster: true` (simple API) or `internalBoosterIntensity > 0` (intensity API). With the internal booster off, no scent comes out.
+
 This SDK ships as a **single DLL**:
 
 -   `ASControllerSDK.dll` — contains both the USB controller and the BLE controller, plus the shared model types.
