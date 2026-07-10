@@ -130,7 +130,7 @@ using ASControllerSDK;
 var usb = AromaShooterControllerUSB.SharedInstance;
 usb.ScanAndConnect();
 
-var usbDevices = usb.getConnectedDevices(); // List<string> of connected serials
+var usbDevices = usb.GetConnectedDevices(); // List<string> of connected serials
 ```
 
 BLE (asynchronous scan — must be awaited):
@@ -144,9 +144,7 @@ var found = await ble.ScanAndConnect(); // List<string> of devices found during 
 var bleDevices = ble.GetConnectedDevices(); // List<string> of connected device names
 ```
 
-Each controller's `GetConnectedDevices()` (BLE) / `getConnectedDevices()` (USB) returns a plain `List<string>` of device serials/names — there is no `{Transport, Identifier, DisplayName}` object. Since you already chose the controller, you know the transport; if you need to correlate a serial across both transports, track that mapping yourself.
-
-> Note: method-name casing currently differs between the two controllers — USB exposes `getConnectedDevices()` (lowercase `g`), BLE exposes `GetConnectedDevices()` (uppercase `G`). Both return `List<string>`.
+Each controller's `GetConnectedDevices()` returns a plain `List<string>` of device serials/names — there is no `{Transport, Identifier, DisplayName}` object. Since you already chose the controller, you know the transport; if you need to correlate a serial across both transports, track that mapping yourself.
 
 ---
 
@@ -259,7 +257,7 @@ usb.StopWithIntensity(
     -   BLE: call `await ble.ScanAndConnect()` first; ensure the device is paired/available and Bluetooth LE is enabled
 -   Calling the wrong controller:
     -   USB and BLE devices are handled by two separate controllers (`AromaShooterControllerUSB`, `AromaShooterControllerBLE`); make sure you're using the one that matches your device's connection
-    -   Re-run `ScanAndConnect()` and confirm `GetConnectedDevices()` / `getConnectedDevices()` returns devices
+    -   Re-run `ScanAndConnect()` and confirm `GetConnectedDevices()` returns devices
 
 ---
 

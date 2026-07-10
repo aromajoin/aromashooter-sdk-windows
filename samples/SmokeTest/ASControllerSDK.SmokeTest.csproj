@@ -11,15 +11,5 @@
       <HintPath>..\..\lib\net472\ASControllerSDK.dll</HintPath>
       <Private>true</Private>
     </Reference>
-
-    <Reference Include="ASControllerSDK.USB">
-      <HintPath>..\..\lib\net472\ASControllerSDK.USB.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
-
-    <Reference Include="ASControllerSDK.BLE">
-      <HintPath>..\..\lib\net472\ASControllerSDK.BLE.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
   </ItemGroup>
 </Project>

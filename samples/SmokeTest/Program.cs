@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using ASControllerSDK;
 
@@ -10,53 +9,39 @@ internal static class Program
     {
         Console.WriteLine("=== ASControllerSDK SmokeTest ===");
 
-        var controller = AromaShooterController.SharedInstance;
-
-        Console.WriteLine("[1] Setup() ...");
-        await controller.Setup();
-
-        var devices = controller.GetConnectedDevices();
-        Console.WriteLine($"[2] Connected devices: {devices.Count}");
-        foreach (var d in devices)
+        // ---- USB ----
+        var usb = AromaShooterControllerUSB.SharedInstance;
+        usb.ScanAndConnect();
+        List<string> usbDevices = usb.GetConnectedDevices();
+        Console.WriteLine($"[USB] connected: {usbDevices.Count}");
+        foreach (var name in usbDevices) Console.WriteLine($"  - {name}");
+        if (usbDevices.Count > 0)
         {
-            Console.WriteLine($" - {d.Transport} | {d.Identifier} | {d.DisplayName}");
+            usb.ShootAllSimple(3000, new int[] { 1, 2 }, true);
+            await Task.Delay(2500);
+            usb.StopAllSimple();
+            var chambers = new List<AromaChamber> { new AromaChamber { number = 1, concentration = 100 } };
+            usb.ShootAllWithIntensity(3000, chambers, 100, 0);
+            await Task.Delay(2500);
+            usb.StopAllWithIntensity(new int[] { 1 }, true, false);
         }
 
-        if (devices.Count == 0)
+        // ---- BLE ----
+        var ble = AromaShooterControllerBLE.SharedInstance;
+        await ble.ScanAndConnect();
+        List<string> bleDevices = ble.GetConnectedDevices();
+        Console.WriteLine($"[BLE] connected: {bleDevices.Count}");
+        foreach (var name in bleDevices) Console.WriteLine($"  - {name}");
+        if (bleDevices.Count > 0)
         {
-            Console.WriteLine("No devices found. Plug USB or pair BLE device, then run again.");
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
-            return;
+            ble.ShootAllSimple(3000, new int[] { 1, 2 }, true);
+            await Task.Delay(2500);
+            ble.StopAllSimple();
+            var chambers = new List<AromaChamber> { new AromaChamber { number = 1, concentration = 100 } };
+            ble.ShootAllWithIntensity(3000, chambers, 100, 0);
+            await Task.Delay(2500);
+            ble.StopAllWithIntensity(new int[] { 1 }, true, false);
         }
-
-        // Pick first device identifier (works as identifierOrName)
-        var firstId = devices[0].Identifier;
-
-        // --- Simple example ---
-        Console.WriteLine("[3] Simple shoot: ports 1,2 for 3s (internal booster ON) on first device");
-        controller.ShootSimple(3000, new[] { 1, 2 }, internalBooster: true, shooterNameOrId: firstId);
-
-        await Task.Delay(2500);
-
-        Console.WriteLine("[4] Stop simple on first device");
-        controller.StopSimple(firstId);
-
-        await Task.Delay(500);
-
-        // --- Intensity example ---
-        Console.WriteLine("[5] Intensity shoot: port1=100% for 3s (internal=100, external=100) on first device");
-        var chambers = new List<AromaChamber>
-        {
-            new AromaChamber { number = 1, concentration = 100 }
-        };
-
-        controller.ShootWithIntensity(3000, chambers, internalBoosterIntensity: 100, externalBoosterIntensity: 100, shooterNameOrId: firstId);
-
-        await Task.Delay(2500);
-
-        Console.WriteLine("[6] Stop intensity: stop port1 + internal booster");
-        controller.StopWithIntensity(firstId, chambers: new[] { 1 }, stopInternalBooster: true, stopExternalBooster: false);
 
         Console.WriteLine("Done. Press any key to exit...");
         Console.ReadKey();
