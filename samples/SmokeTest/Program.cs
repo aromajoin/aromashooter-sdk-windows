@@ -46,17 +46,17 @@ internal static class Program
 
         // --- Intensity example ---
         Console.WriteLine("[5] Intensity shoot: port1=100% for 3s (internal=100, external=100) on first device");
-        var ports = new List<AromaPort>
+        var chambers = new List<AromaChamber>
         {
-            new AromaPort { number = 1, concentration = 100 }
+            new AromaChamber { number = 1, concentration = 100 }
         };
 
-        controller.ShootWithIntensity(3000, ports, internalBoosterIntensity: 100, externalBoosterIntensity: 100, shooterNameOrId: firstId);
+        controller.ShootWithIntensity(3000, chambers, internalBoosterIntensity: 100, externalBoosterIntensity: 100, shooterNameOrId: firstId);
 
         await Task.Delay(2500);
 
         Console.WriteLine("[6] Stop intensity: stop port1 + internal booster");
-        controller.StopWithIntensity(firstId, ports: new[] { 1 }, stopInternalBooster: true, stopExternalBooster: false);
+        controller.StopWithIntensity(firstId, chambers: new[] { 1 }, stopInternalBooster: true, stopExternalBooster: false);
 
         Console.WriteLine("Done. Press any key to exit...");
         Console.ReadKey();
