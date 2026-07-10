@@ -4,14 +4,16 @@
 
 **USB** および / または **BLE** 経由で Aroma Shooter デバイスに接続し、制御するための Windows .NET SDK です。
 
-本 SDK は以下に分かれています:
+本 SDK は**単一の DLL** として提供されます:
 
--   **Core**: `ASControllerSDK.dll`（公開 API + プラグインローダー）
--   **Plugins**（任意）:
-    -   `ASControllerSDK.USB.dll`
-    -   `ASControllerSDK.BLE.dll`
+-   `ASControllerSDK.dll` — USB コントローラーと BLE コントローラー、および共通のモデル型を含みます。
 
-プラグイン DLL が存在しない場合でも SDK 自体は動作しますが、そのトランスポート（USB / BLE）の機能のみ利用できません。
+もはや Core / プラグインの分割はなく、統合された `AromaShooterController` ファサードもありません。アプリ側で必要なコントローラーを選び、そのコントローラー自身の API を直接呼び出します:
+
+-   `AromaShooterControllerUSB.SharedInstance` — USB / シリアルデバイス用
+-   `AromaShooterControllerBLE.SharedInstance` — BLE デバイス用
+
+両コントローラーは同じ形の射出/停止 API（Simple + Intensity）を持ちますが、接続のセットアップ方法だけが異なります（USB のスキャンは同期、BLE のスキャンは非同期です）。
 
 ---
 
@@ -57,9 +59,7 @@
 ASControllerSDK-Windows/
 ├─ lib/
 │  └─ net472/
-│     ├─ ASControllerSDK.dll
-│     ├─ ASControllerSDK.USB.dll        （任意）
-│     └─ ASControllerSDK.BLE.dll        （任意）
+│     └─ ASControllerSDK.dll
 ├─ samples/
 │  └─ SmokeTest/
 │     ├─ ASControllerSDK.SmokeTest.csproj
@@ -67,8 +67,7 @@ ASControllerSDK-Windows/
 └─ README.md
 ```
 
-**重要**: 実行時にプラグインローダーが DLL を見つけられるよう、プラグイン DLL は
-`.exe` と同じフォルダに置く（または出力フォルダにコピーされる）必要があります。
+**重要**: 実行時に `ASControllerSDK.dll` を `.exe` と同じフォルダに置く（または出力フォルダにコピーされる）必要があります。配置が必要な DLL はこの 1 つだけです。USB と BLE の両方の機能がこの中に含まれているため、トランスポートごとに有効/無効を切り替える配置作業はありません。
 
 ---
 
@@ -78,14 +77,16 @@ ASControllerSDK-Windows/
 
 #### .NET（デスクトップアプリ）
 
-1. Core DLL `ASControllerSDK.dll` を参照に追加
-2. `.exe` と同じフォルダへプラグイン DLL を配置:
-    - `ASControllerSDK.USB.dll`（USB 利用時）
-    - `ASControllerSDK.BLE.dll`（BLE 利用時）
+1. `ASControllerSDK.dll` を参照に追加
+2. アプリで必要なコントローラーを利用:
+    - USB を使う場合は `AromaShooterControllerUSB.SharedInstance`
+    - BLE を使う場合は `AromaShooterControllerBLE.SharedInstance`
+
+`.exe` と同じフォルダに追加で配置する DLL はありません。
 
 #### Unity（Windows）
 
--   必要な DLL を Unity プロジェクトへ配置:
+-   `ASControllerSDK.dll` を Unity プロジェクトへ配置:
     -   `Assets/Plugins/`（環境により `Assets/Plugins/x86_64/` 等）
 -   Unity の .NET 設定は使用バージョンに合わせて **.NET 4.x** を利用してください。
 
@@ -104,7 +105,7 @@ ASControllerSDK-Windows/
 
 サンプルは以下を行います:
 
-1. `Setup()` を呼び出して利用可能なプラグインを初期化
+1. `AromaShooterControllerUSB.SharedInstance.ScanAndConnect()` および/または `await AromaShooterControllerBLE.SharedInstance.ScanAndConnect()` で接続
 2. 検出したデバイス一覧を表示
 3. Simple の射出 → 停止
 4. Intensity の射出 → 停止
@@ -115,24 +116,37 @@ ASControllerSDK-Windows/
 
 ## 使い方
 
+統合された `AromaShooterController` ファサードはありません。利用したいトランスポートに対応するコントローラーを取得し、そのコントローラー自身のメソッドを呼び出してください。
+
 <a id="0-セットアップ--検出"></a>
 
 ### 0. セットアップ / 検出
 
+USB（同期スキャン）:
+
 ```csharp
 using ASControllerSDK;
 
-var controller = AromaShooterController.SharedInstance;
-await controller.Setup();
+var usb = AromaShooterControllerUSB.SharedInstance;
+usb.ScanAndConnect();
 
-var devices = controller.GetConnectedDevices();
+var usbDevices = usb.getConnectedDevices(); // 接続中のシリアル番号の List<string>
 ```
 
-各デバイス情報:
+BLE（非同期スキャン — await が必要）:
 
--   `Transport`: USB または BLE
--   `Identifier`: 正規化された ID（通常はシリアル）
--   `DisplayName`: OS 側の生の表示名
+```csharp
+using ASControllerSDK;
+
+var ble = AromaShooterControllerBLE.SharedInstance;
+var found = await ble.ScanAndConnect(); // このスキャンで見つかったデバイス名の List<string>
+
+var bleDevices = ble.GetConnectedDevices(); // 接続中のデバイス名の List<string>
+```
+
+各コントローラーの `GetConnectedDevices()`（BLE）/ `getConnectedDevices()`（USB）は、単純な `List<string>`（デバイスのシリアル/名前）を返します。`{Transport, Identifier, DisplayName}` のようなオブジェクトはありません。どのコントローラーを使ったかで既にトランスポートは分かっているため、両トランスポート間でシリアルを紐づけたい場合はアプリ側で管理してください。
+
+> 注意: 現時点では 2 つのコントローラー間でメソッド名の大文字/小文字が異なります — USB は `getConnectedDevices()`（小文字の `g`）、BLE は `GetConnectedDevices()`（大文字の `G`）です。いずれも戻り値は `List<string>` です。
 
 ---
 
@@ -140,28 +154,30 @@ var devices = controller.GetConnectedDevices();
 
 ### 1. Simple 射出 API
 
+`AromaShooterControllerUSB.SharedInstance` と `AromaShooterControllerBLE.SharedInstance` の両方に、同名のメソッドとして用意されています（以下の例では `usb` を使用していますが、BLE デバイスの場合は `ble` に置き換えてください）:
+
 全デバイスへ射出:
 
 ```csharp
-controller.ShootSimple(3000, new int[] { 1, 2, 5 }, internalBooster: true);
+usb.ShootAllSimple(3000, new int[] { 1, 2, 5 }, internalBooster: true);
 ```
 
 特定デバイスへ射出:
 
 ```csharp
-controller.ShootSimple(3000, new int[] { 1, 2, 5 }, true, "ASN3A01192");
+usb.ShootSimple(3000, new int[] { 1, 2, 5 }, true, "ASN3A01192");
 ```
 
 全停止:
 
 ```csharp
-controller.StopSimple();
+usb.StopAllSimple();
 ```
 
 特定デバイス停止:
 
 ```csharp
-controller.StopSimple("ASN3A01192");
+usb.StopSimple("ASN3A01192");
 ```
 
 ---
@@ -173,7 +189,7 @@ controller.StopSimple("ASN3A01192");
 `AromaChamber`:
 
 ```csharp
-public sealed class AromaChamber
+public class AromaChamber
 {
     public int number;        // 1..6
     public int concentration; // 0..100
@@ -189,7 +205,7 @@ var chambers = new List<AromaChamber>
     new AromaChamber { number = 2, concentration = 80 },
 };
 
-controller.ShootWithIntensity(
+usb.ShootAllWithIntensity(
     3000,
     chambers,
     internalBoosterIntensity: 100,
@@ -197,15 +213,40 @@ controller.ShootWithIntensity(
 );
 ```
 
-強度制御の停止（ポート指定）:
+強度制御ありで特定デバイスへ射出:
 
 ```csharp
-controller.StopAllWithIntensity(
+usb.ShootWithIntensity(
+    3000,
+    chambers,
+    internalBoosterIntensity: 100,
+    externalBoosterIntensity: 0,
+    shooterName: "ASN3A01192"
+);
+```
+
+強度制御の停止（チャンバー指定）:
+
+```csharp
+usb.StopAllWithIntensity(
     chambers: new[] { 1, 2 },
     stopInternalBooster: true,
     stopExternalBooster: false
 );
 ```
+
+特定デバイスの強度制御停止（チャンバー指定）:
+
+```csharp
+usb.StopWithIntensity(
+    "ASN3A01192",
+    chambers: new[] { 1, 2 },
+    stopInternalBooster: true,
+    stopExternalBooster: false
+);
+```
+
+`AromaShooterControllerBLE.SharedInstance` も同じ Intensity API（`ShootAllWithIntensity` / `ShootWithIntensity` / `StopAllWithIntensity` / `StopWithIntensity`）を持ちます。BLE デバイスも USB デバイスと同様に強度制御に対応しています。
 
 ---
 
@@ -214,12 +255,11 @@ controller.StopAllWithIntensity(
 ## トラブルシューティング
 
 -   デバイスが見つからない:
-    -   先に `await controller.Setup()` を呼んでください
-    -   USB: COM/ドライバを確認
-    -   BLE: ペアリング済みか、Bluetooth LE が有効か確認
--   USB/BLE の機能が使えない:
-    -   `ASControllerSDK.USB.dll` / `ASControllerSDK.BLE.dll` が `.exe` と同じフォルダにあるか確認
-    -   `Setup()` を再実行し、`GetConnectedDevices()` の結果を確認
+    -   USB: 先に `usb.ScanAndConnect()` を呼び、COM ポート/ドライバを確認
+    -   BLE: 先に `await ble.ScanAndConnect()` を呼び、ペアリング済みか、Bluetooth LE が有効か確認
+-   コントローラーの選び間違い:
+    -   USB と BLE は別々のコントローラー（`AromaShooterControllerUSB`、`AromaShooterControllerBLE`）で扱われます。デバイスの接続方式に合ったコントローラーを使用しているか確認してください
+    -   `ScanAndConnect()` を再実行し、`GetConnectedDevices()` / `getConnectedDevices()` の結果を確認
 
 ---
 

@@ -4,14 +4,16 @@
 
 A Windows .NET SDK for connecting to and controlling Aroma Shooter devices via **USB** and/or **BLE**.
 
-This SDK is split into:
+This SDK ships as a **single DLL**:
 
--   **Core**: `ASControllerSDK.dll` (public API + plugin loader)
--   **Plugins** (optional):
-    -   `ASControllerSDK.USB.dll`
-    -   `ASControllerSDK.BLE.dll`
+-   `ASControllerSDK.dll` — contains both the USB controller and the BLE controller, plus the shared model types.
 
-If a plugin DLL is missing, the SDK still works, but that transport is simply unavailable.
+There is no Core/plugin split anymore, and no unified `AromaShooterController` facade. Your app picks the controller(s) it needs and talks to that controller's own API directly:
+
+-   `AromaShooterControllerUSB.SharedInstance` — for USB / serial devices
+-   `AromaShooterControllerBLE.SharedInstance` — for BLE devices
+
+Both controllers expose the same shooting/stopping API shape (simple + intensity); only connection setup differs (USB scan is synchronous, BLE scan is asynchronous).
 
 ---
 
@@ -57,9 +59,7 @@ Recommended minimal distribution:
 ASControllerSDK-Windows/
 ├─ lib/
 │  └─ net472/
-│     ├─ ASControllerSDK.dll
-│     ├─ ASControllerSDK.USB.dll        (optional)
-│     └─ ASControllerSDK.BLE.dll        (optional)
+│     └─ ASControllerSDK.dll
 ├─ samples/
 │  └─ SmokeTest/
 │     ├─ ASControllerSDK.SmokeTest.csproj
@@ -67,8 +67,7 @@ ASControllerSDK-Windows/
 └─ README.md
 ```
 
-**Important**: Plugin DLLs must be located next to your executable at runtime
-(or copied to the output folder), so the plugin loader can discover them.
+**Important**: `ASControllerSDK.dll` must be located next to your executable at runtime (or copied to the output folder). It is the only DLL you need to deploy — USB and BLE support both live inside it, so there is nothing to enable/disable per transport at deploy time.
 
 ---
 
@@ -78,14 +77,16 @@ ASControllerSDK-Windows/
 
 #### .NET (Desktop app)
 
-1. Reference the Core DLL: `ASControllerSDK.dll`
-2. Copy plugin DLLs next to your `.exe`:
-    - `ASControllerSDK.USB.dll` (USB support)
-    - `ASControllerSDK.BLE.dll` (BLE support)
+1. Reference `ASControllerSDK.dll`.
+2. Use whichever controller(s) your app needs:
+    - `AromaShooterControllerUSB.SharedInstance` for USB
+    - `AromaShooterControllerBLE.SharedInstance` for BLE
+
+There are no additional DLLs to copy next to your `.exe`.
 
 #### Unity (Windows)
 
--   Place all required DLLs into:
+-   Place `ASControllerSDK.dll` into:
     -   `Assets/Plugins/` (or `Assets/Plugins/x86_64/` depending on your setup)
 -   Use **.NET 4.x** scripting runtime / API compatibility level as needed by your Unity version.
 
@@ -104,7 +105,7 @@ Build and run:
 
 The sample will:
 
-1. Call `Setup()` to initialize available plugins
+1. Connect via `AromaShooterControllerUSB.SharedInstance.ScanAndConnect()` and/or `await AromaShooterControllerBLE.SharedInstance.ScanAndConnect()`
 2. Print discovered devices
 3. Run a simple shoot + stop sequence
 4. Run an intensity shoot + stop sequence
@@ -115,24 +116,37 @@ The sample will:
 
 ## Usage
 
+There is no unified `AromaShooterController` facade — get the controller for the transport you want and call its own methods.
+
 <a id="0-setup--discovery"></a>
 
 ### 0. Setup / discovery
 
+USB (synchronous scan):
+
 ```csharp
 using ASControllerSDK;
 
-var controller = AromaShooterController.SharedInstance;
-await controller.Setup();
+var usb = AromaShooterControllerUSB.SharedInstance;
+usb.ScanAndConnect();
 
-var devices = controller.GetConnectedDevices();
+var usbDevices = usb.getConnectedDevices(); // List<string> of connected serials
 ```
 
-Each device returns:
+BLE (asynchronous scan — must be awaited):
 
--   `Transport`: USB or BLE
--   `Identifier`: canonical id (typically serial)
--   `DisplayName`: raw OS/device name
+```csharp
+using ASControllerSDK;
+
+var ble = AromaShooterControllerBLE.SharedInstance;
+var found = await ble.ScanAndConnect(); // List<string> of devices found during this scan
+
+var bleDevices = ble.GetConnectedDevices(); // List<string> of connected device names
+```
+
+Each controller's `GetConnectedDevices()` (BLE) / `getConnectedDevices()` (USB) returns a plain `List<string>` of device serials/names — there is no `{Transport, Identifier, DisplayName}` object. Since you already chose the controller, you know the transport; if you need to correlate a serial across both transports, track that mapping yourself.
+
+> Note: method-name casing currently differs between the two controllers — USB exposes `getConnectedDevices()` (lowercase `g`), BLE exposes `GetConnectedDevices()` (uppercase `G`). Both return `List<string>`.
 
 ---
 
@@ -140,28 +154,30 @@ Each device returns:
 
 ### 1. Simple shooting API
 
+Available on both `AromaShooterControllerUSB.SharedInstance` and `AromaShooterControllerBLE.SharedInstance` with identical method names (examples below use `usb`; swap in `ble` for BLE devices):
+
 Shoot all connected devices:
 
 ```csharp
-controller.ShootSimple(3000, new int[] { 1, 2, 5 }, internalBooster: true);
+usb.ShootAllSimple(3000, new int[] { 1, 2, 5 }, internalBooster: true);
 ```
 
 Shoot a specific device:
 
 ```csharp
-controller.ShootSimple(3000, new int[] { 1, 2, 5 }, true, "ASN3A01192");
+usb.ShootSimple(3000, new int[] { 1, 2, 5 }, true, "ASN3A01192");
 ```
 
 Stop all:
 
 ```csharp
-controller.StopSimple();
+usb.StopAllSimple();
 ```
 
 Stop a specific device:
 
 ```csharp
-controller.StopSimple("ASN3A01192");
+usb.StopSimple("ASN3A01192");
 ```
 
 ---
@@ -173,7 +189,7 @@ controller.StopSimple("ASN3A01192");
 `AromaChamber`:
 
 ```csharp
-public sealed class AromaChamber
+public class AromaChamber
 {
     public int number;        // 1..6
     public int concentration; // 0..100
@@ -189,7 +205,7 @@ var chambers = new List<AromaChamber>
     new AromaChamber { number = 2, concentration = 80 },
 };
 
-controller.ShootWithIntensity(
+usb.ShootAllWithIntensity(
     3000,
     chambers,
     internalBoosterIntensity: 100,
@@ -197,15 +213,40 @@ controller.ShootWithIntensity(
 );
 ```
 
-Stop with intensity (per port):
+Shoot a specific device with intensity control:
 
 ```csharp
-controller.StopAllWithIntensity(
+usb.ShootWithIntensity(
+    3000,
+    chambers,
+    internalBoosterIntensity: 100,
+    externalBoosterIntensity: 0,
+    shooterName: "ASN3A01192"
+);
+```
+
+Stop with intensity (per chamber):
+
+```csharp
+usb.StopAllWithIntensity(
     chambers: new[] { 1, 2 },
     stopInternalBooster: true,
     stopExternalBooster: false
 );
 ```
+
+Stop a specific device with intensity (per chamber):
+
+```csharp
+usb.StopWithIntensity(
+    "ASN3A01192",
+    chambers: new[] { 1, 2 },
+    stopInternalBooster: true,
+    stopExternalBooster: false
+);
+```
+
+`AromaShooterControllerBLE.SharedInstance` exposes the identical intensity API (`ShootAllWithIntensity`, `ShootWithIntensity`, `StopAllWithIntensity`, `StopWithIntensity`) — BLE devices support intensity control just like USB devices.
 
 ---
 
@@ -214,12 +255,11 @@ controller.StopAllWithIntensity(
 ## Troubleshooting
 
 -   No devices found:
-    -   Call `await controller.Setup()` first
-    -   USB: check COM/driver installation
-    -   BLE: ensure the device is paired/available and Bluetooth LE is enabled
--   USB/BLE features missing:
-    -   Make sure `ASControllerSDK.USB.dll` / `ASControllerSDK.BLE.dll` are located next to your executable
-    -   Re-run `Setup()` and confirm `GetConnectedDevices()` returns devices
+    -   USB: call `usb.ScanAndConnect()` first, then check COM port / driver installation
+    -   BLE: call `await ble.ScanAndConnect()` first; ensure the device is paired/available and Bluetooth LE is enabled
+-   Calling the wrong controller:
+    -   USB and BLE devices are handled by two separate controllers (`AromaShooterControllerUSB`, `AromaShooterControllerBLE`); make sure you're using the one that matches your device's connection
+    -   Re-run `ScanAndConnect()` and confirm `GetConnectedDevices()` / `getConnectedDevices()` returns devices
 
 ---
 
