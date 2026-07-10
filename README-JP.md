@@ -170,10 +170,10 @@ controller.StopSimple("ASN3A01192");
 
 ### 2. Intensity 射出 API
 
-`AromaPort`:
+`AromaChamber`:
 
 ```csharp
-public sealed class AromaPort
+public sealed class AromaChamber
 {
     public int number;        // 1..6
     public int concentration; // 0..100
@@ -183,15 +183,15 @@ public sealed class AromaPort
 強度制御ありで全デバイスへ射出:
 
 ```csharp
-var ports = new List<AromaPort>
+var chambers = new List<AromaChamber>
 {
-    new AromaPort { number = 1, concentration = 50 },
-    new AromaPort { number = 2, concentration = 80 },
+    new AromaChamber { number = 1, concentration = 50 },
+    new AromaChamber { number = 2, concentration = 80 },
 };
 
 controller.ShootWithIntensity(
     3000,
-    ports,
+    chambers,
     internalBoosterIntensity: 100,
     externalBoosterIntensity: 0
 );
@@ -201,7 +201,7 @@ controller.ShootWithIntensity(
 
 ```csharp
 controller.StopAllWithIntensity(
-    ports: new[] { 1, 2 },
+    chambers: new[] { 1, 2 },
     stopInternalBooster: true,
     stopExternalBooster: false
 );
