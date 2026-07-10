@@ -2,6 +2,8 @@
 
 # ASControllerSDK (Windows)
 
+**Version 2.0.0**
+
 A Windows .NET SDK for connecting to and controlling Aroma Shooter devices via **USB** and/or **BLE**.
 
 This SDK ships as a **single DLL**:
