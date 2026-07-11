@@ -1,6 +1,6 @@
 [English](#en) / [日本語](README-JP.md)
 
-# ASControllerSDK (Windows)
+# Aroma Shooter SDK (Windows)
 
 **Version 2.0.0**
 
