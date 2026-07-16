@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="ASControllerSDK">
-      <HintPath>..\..\lib\net472\ASControllerSDK.dll</HintPath>
+    <Reference Include="AromaShooterWindowsSDK">
+      <HintPath>..\..\lib\net472\AromaShooterWindowsSDK.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>

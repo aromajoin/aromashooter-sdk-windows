@@ -2,7 +2,7 @@
 
 # Aroma Shooter SDK (Windows)
 
-**Version 2.0.0**
+**Version 3.0.0**
 
 A Windows .NET SDK for connecting to and controlling Aroma Shooter devices via **USB** and/or **BLE**.
 
@@ -10,7 +10,7 @@ A Windows .NET SDK for connecting to and controlling Aroma Shooter devices via *
 
 This SDK ships as a **single DLL**:
 
--   `ASControllerSDK.dll` — contains both the USB controller and the BLE controller, plus the shared model types.
+-   `AromaShooterWindowsSDK.dll` — contains both the USB controller and the BLE controller, plus the shared model types.
 
 There is no Core/plugin split anymore, and no unified `AromaShooterController` facade. Your app picks the controller(s) it needs and talks to that controller's own API directly:
 
@@ -35,6 +35,7 @@ Both controllers expose the same shooting/stopping API shape (simple + intensity
     - [0. Setup / discovery](#0-setup--discovery)
     - [1. Simple shooting API](#1-simple-shooting-api)
     - [2. Intensity shooting API](#2-intensity-shooting-api)
+    - [3. Disconnecting / reconnecting](#3-disconnecting--reconnecting)
 6. [Troubleshooting](#troubleshooting)
 7. [License](#license)
 
@@ -60,18 +61,18 @@ Both controllers expose the same shooting/stopping API shape (simple + intensity
 Recommended minimal distribution:
 
 ```
-ASControllerSDK-Windows/
+AromaShooterWindowsSDK/
 ├─ lib/
 │  └─ net472/
-│     └─ ASControllerSDK.dll
+│     └─ AromaShooterWindowsSDK.dll
 ├─ samples/
 │  └─ SmokeTest/
-│     ├─ ASControllerSDK.SmokeTest.csproj
+│     ├─ AromaShooterWindowsSDK.SmokeTest.csproj
 │     └─ Program.cs
 └─ README.md
 ```
 
-**Important**: `ASControllerSDK.dll` must be located next to your executable at runtime (or copied to the output folder). It is the only DLL you need to deploy — USB and BLE support both live inside it, so there is nothing to enable/disable per transport at deploy time.
+**Important**: `AromaShooterWindowsSDK.dll` must be located next to your executable at runtime (or copied to the output folder). It is the only DLL you need to deploy — USB and BLE support both live inside it, so there is nothing to enable/disable per transport at deploy time.
 
 ---
 
@@ -81,7 +82,7 @@ ASControllerSDK-Windows/
 
 #### .NET (Desktop app)
 
-1. Reference `ASControllerSDK.dll`.
+1. Reference `AromaShooterWindowsSDK.dll`.
 2. Use whichever controller(s) your app needs:
     - `AromaShooterControllerUSB.SharedInstance` for USB
     - `AromaShooterControllerBLE.SharedInstance` for BLE
@@ -90,7 +91,7 @@ There are no additional DLLs to copy next to your `.exe`.
 
 #### Unity (Windows)
 
--   Place `ASControllerSDK.dll` into:
+-   Place `AromaShooterWindowsSDK.dll` into:
     -   `Assets/Plugins/` (or `Assets/Plugins/x86_64/` depending on your setup)
 -   Use **.NET 4.x** scripting runtime / API compatibility level as needed by your Unity version.
 
@@ -129,7 +130,7 @@ There is no unified `AromaShooterController` facade — get the controller for t
 USB (synchronous scan):
 
 ```csharp
-using ASControllerSDK;
+using AromaShooterWindowsSDK;
 
 var usb = AromaShooterControllerUSB.SharedInstance;
 usb.ScanAndConnect();
@@ -140,7 +141,7 @@ var usbDevices = usb.GetConnectedDevices(); // List<string> of connected serials
 BLE (asynchronous scan — must be awaited):
 
 ```csharp
-using ASControllerSDK;
+using AromaShooterWindowsSDK;
 
 var ble = AromaShooterControllerBLE.SharedInstance;
 var found = await ble.ScanAndConnect(); // List<string> of devices found during this scan
@@ -223,7 +224,7 @@ usb.ShootWithIntensity(
     chambers,
     internalBoosterIntensity: 100,
     externalBoosterIntensity: 0,
-    shooterName: "ASN3A01192"
+    deviceSerial: "ASN3A01192"
 );
 ```
 
@@ -249,6 +250,39 @@ usb.StopWithIntensity(
 ```
 
 `AromaShooterControllerBLE.SharedInstance` exposes the identical intensity API (`ShootAllWithIntensity`, `ShootWithIntensity`, `StopAllWithIntensity`, `StopWithIntensity`) — BLE devices support intensity control just like USB devices.
+
+---
+
+<a id="3-disconnecting--reconnecting"></a>
+
+### 3. Disconnecting / reconnecting
+
+Use these to release a device so another application/project can take it over — e.g. switching between two apps that share the same AromaShooter **without physically unplugging the USB** (a USB/COM port can only be held by one application at a time).
+
+USB:
+
+```csharp
+usb.DisconnectAll();               // stop output, then close & release every serial port
+usb.Disconnect("ASN3A01192");      // disconnect a single device by name
+
+usb.Reconnect();                   // fast switch: re-open the port(s) used before the last
+                                   // DisconnectAll(); falls back to ScanAndConnect()
+
+bool ok = usb.Connect("COM5");     // connect to a specific COM port without scanning every
+                                   // port; retries briefly if the port is still busy
+```
+
+BLE:
+
+```csharp
+ble.DisconnectAll();               // release GATT services for all connected devices
+ble.Disconnect("ASN3A01192");      // release a single device
+await ble.Reconnect();             // re-discover & reconnect (equivalent to ScanAndConnect)
+```
+
+> **`Disconnect(name)` (USB and BLE).** `name` is the device serial from `GetConnectedDevices()` (e.g. `"ASN3A01192"`). Only that device is released; other connected devices stay connected. Exact match (case-sensitive); an unknown name is ignored silently.
+
+> **Switching between two apps (USB).** The remembered port list is per process, so each app reconnects independently. Ensure the app that is leaving calls `DisconnectAll()` **before** the next one calls `Reconnect()`/`Connect()`, otherwise the port is still busy. `Connect()`/`Reconnect()` retry briefly to absorb a small timing gap.
 
 ---
 

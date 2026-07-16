@@ -6,7 +6,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{5D20
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SmokeTest", "SmokeTest", "{4253D37A-8534-982C-EFA3-8A6F2A3DD6F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASControllerSDK.SmokeTest", "samples\SmokeTest\ASControllerSDK.SmokeTest.csproj", "{A0D8FCA3-AFD2-E628-E57D-6231416BBFBB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AromaShooterWindowsSDK.SmokeTest", "samples\SmokeTest\AromaShooterWindowsSDK.SmokeTest.csproj", "{A0D8FCA3-AFD2-E628-E57D-6231416BBFBB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

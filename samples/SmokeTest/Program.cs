@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ASControllerSDK;
+using AromaShooterWindowsSDK;
 
 internal static class Program
 {
     private static async Task Main(string[] args)
     {
-        Console.WriteLine("=== ASControllerSDK SmokeTest ===");
+        Console.WriteLine("=== AromaShooterWindowsSDK SmokeTest ===");
 
         // ---- USB ----
         var usb = AromaShooterControllerUSB.SharedInstance;

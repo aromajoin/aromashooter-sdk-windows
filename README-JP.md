@@ -2,7 +2,7 @@
 
 # Aroma Shooter SDK (Windows)
 
-**Version 2.0.0**
+**Version 3.0.0**
 
 **USB** および / または **BLE** 経由で Aroma Shooter デバイスに接続し、制御するための Windows .NET SDK です。
 
@@ -10,7 +10,7 @@
 
 本 SDK は**単一の DLL** として提供されます:
 
--   `ASControllerSDK.dll` — USB コントローラーと BLE コントローラー、および共通のモデル型を含みます。
+-   `AromaShooterWindowsSDK.dll` — USB コントローラーと BLE コントローラー、および共通のモデル型を含みます。
 
 もはや Core / プラグインの分割はなく、統合された `AromaShooterController` ファサードもありません。アプリ側で必要なコントローラーを選び、そのコントローラー自身の API を直接呼び出します:
 
@@ -35,6 +35,7 @@
     -   0. セットアップ / 検出
     -   1. Simple 射出 API
     -   2. Intensity 射出 API
+    -   3. 切断 / 再接続
 6. トラブルシューティング
 7. ライセンス
 
@@ -60,18 +61,18 @@
 推奨する最小配布構成:
 
 ```
-ASControllerSDK-Windows/
+AromaShooterWindowsSDK/
 ├─ lib/
 │  └─ net472/
-│     └─ ASControllerSDK.dll
+│     └─ AromaShooterWindowsSDK.dll
 ├─ samples/
 │  └─ SmokeTest/
-│     ├─ ASControllerSDK.SmokeTest.csproj
+│     ├─ AromaShooterWindowsSDK.SmokeTest.csproj
 │     └─ Program.cs
 └─ README.md
 ```
 
-**重要**: 実行時に `ASControllerSDK.dll` を `.exe` と同じフォルダに置く（または出力フォルダにコピーされる）必要があります。配置が必要な DLL はこの 1 つだけです。USB と BLE の両方の機能がこの中に含まれているため、トランスポートごとに有効/無効を切り替える配置作業はありません。
+**重要**: 実行時に `AromaShooterWindowsSDK.dll` を `.exe` と同じフォルダに置く（または出力フォルダにコピーされる）必要があります。配置が必要な DLL はこの 1 つだけです。USB と BLE の両方の機能がこの中に含まれているため、トランスポートごとに有効/無効を切り替える配置作業はありません。
 
 ---
 
@@ -81,7 +82,7 @@ ASControllerSDK-Windows/
 
 #### .NET（デスクトップアプリ）
 
-1. `ASControllerSDK.dll` を参照に追加
+1. `AromaShooterWindowsSDK.dll` を参照に追加
 2. アプリで必要なコントローラーを利用:
     - USB を使う場合は `AromaShooterControllerUSB.SharedInstance`
     - BLE を使う場合は `AromaShooterControllerBLE.SharedInstance`
@@ -90,7 +91,7 @@ ASControllerSDK-Windows/
 
 #### Unity（Windows）
 
--   `ASControllerSDK.dll` を Unity プロジェクトへ配置:
+-   `AromaShooterWindowsSDK.dll` を Unity プロジェクトへ配置:
     -   `Assets/Plugins/`（環境により `Assets/Plugins/x86_64/` 等）
 -   Unity の .NET 設定は使用バージョンに合わせて **.NET 4.x** を利用してください。
 
@@ -129,7 +130,7 @@ ASControllerSDK-Windows/
 USB（同期スキャン）:
 
 ```csharp
-using ASControllerSDK;
+using AromaShooterWindowsSDK;
 
 var usb = AromaShooterControllerUSB.SharedInstance;
 usb.ScanAndConnect();
@@ -140,7 +141,7 @@ var usbDevices = usb.GetConnectedDevices(); // 接続中のシリアル番号の
 BLE（非同期スキャン — await が必要）:
 
 ```csharp
-using ASControllerSDK;
+using AromaShooterWindowsSDK;
 
 var ble = AromaShooterControllerBLE.SharedInstance;
 var found = await ble.ScanAndConnect(); // このスキャンで見つかったデバイス名の List<string>
@@ -223,7 +224,7 @@ usb.ShootWithIntensity(
     chambers,
     internalBoosterIntensity: 100,
     externalBoosterIntensity: 0,
-    shooterName: "ASN3A01192"
+    deviceSerial: "ASN3A01192"
 );
 ```
 
@@ -249,6 +250,39 @@ usb.StopWithIntensity(
 ```
 
 `AromaShooterControllerBLE.SharedInstance` も同じ Intensity API（`ShootAllWithIntensity` / `ShootWithIntensity` / `StopAllWithIntensity` / `StopWithIntensity`）を持ちます。BLE デバイスも USB デバイスと同様に強度制御に対応しています。
+
+---
+
+<a id="3-切断--再接続"></a>
+
+### 3. 切断 / 再接続
+
+デバイスを解放し、別のアプリ/プロジェクトへ渡すための API です。同じ AromaShooter を共有する 2 つのアプリを切り替える際に、**USB を物理的に抜かずに** 受け渡せます（USB/COM ポートは同時に 1 つのアプリしか占有できません）。
+
+USB:
+
+```csharp
+usb.DisconnectAll();               // 噴射を停止し、すべてのシリアルポートを閉じて解放
+usb.Disconnect("ASN3A01192");      // 特定デバイスを名前で切断
+
+usb.Reconnect();                   // 高速切り替え: 直前の DisconnectAll() で使っていた
+                                   // ポートを再オープン。無理なら ScanAndConnect() にフォールバック
+
+bool ok = usb.Connect("COM5");     // 全ポートをスキャンせず特定の COM ポートだけを開く。
+                                   // ポートがまだ使用中なら短時間リトライ
+```
+
+BLE:
+
+```csharp
+ble.DisconnectAll();               // 全接続デバイスの GATT サービスを解放
+ble.Disconnect("ASN3A01192");      // 特定デバイスを解放
+await ble.Reconnect();             // 再探索して再接続（ScanAndConnect 相当）
+```
+
+> **`Disconnect(name)`（USB・BLE 共通）.** `name` は `GetConnectedDevices()` が返すデバイスのシリアル名（例：`"ASN3A01192"`）。その 1 台だけを解放し、他の接続中デバイスはそのまま維持します。完全一致（大文字小文字を区別）で、存在しない名前は何もせず無視します。
+
+> **2 つのアプリを切り替える場合（USB）。** 記憶されるポート一覧はプロセスごとに保持されるため、各アプリは独立して再接続します。**離れる側が `DisconnectAll()` を呼んだ後**に、次のアプリが `Reconnect()` / `Connect()` を呼ぶようにしてください。そうしないとポートが使用中のままです。`Connect()` / `Reconnect()` はわずかなタイミングのずれを吸収するため短時間リトライします。
 
 ---
 
