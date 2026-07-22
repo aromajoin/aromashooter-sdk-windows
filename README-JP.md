@@ -303,4 +303,4 @@ await ble.Reconnect();             // 再探索して再接続（ScanAndConnect 
 
 ## ライセンス
 
-[LICENSE](LICENSE.md) を参照してください。
+[LICENSE](LICENSE) を参照してください。

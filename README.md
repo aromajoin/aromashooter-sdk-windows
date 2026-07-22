@@ -303,4 +303,4 @@ await ble.Reconnect();             // re-discover & reconnect (equivalent to Sca
 
 ## License
 
-See [LICENSE.](LICENSE.md)
+See [LICENSE](LICENSE).
