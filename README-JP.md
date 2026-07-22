@@ -17,7 +17,7 @@
 -   `AromaShooterControllerUSB.SharedInstance` — USB / シリアルデバイス用
 -   `AromaShooterControllerBLE.SharedInstance` — BLE デバイス用
 
-両コントローラーは同じ形の射出/停止 API（Simple + Intensity）を持ちますが、接続のセットアップ方法だけが異なります（USB のスキャンは同期、BLE のスキャンは非同期です）。
+両コントローラーは同じ形の噴射/停止 API（Simple + Intensity）を持ちますが、接続のセットアップ方法だけが異なります（USB のスキャンは同期、BLE のスキャンは非同期です）。
 
 ---
 
@@ -33,8 +33,8 @@
 4. サンプル（SmokeTest）
 5. 使い方
     -   0. セットアップ / 検出
-    -   1. Simple 射出 API
-    -   2. Intensity 射出 API
+    -   1. Simple 噴射 API
+    -   2. Intensity 噴射 API
     -   3. 切断 / 再接続
 6. トラブルシューティング
 7. ライセンス
@@ -112,8 +112,8 @@ AromaShooterWindowsSDK/
 
 1. `AromaShooterControllerUSB.SharedInstance.ScanAndConnect()` および/または `await AromaShooterControllerBLE.SharedInstance.ScanAndConnect()` で接続
 2. 検出したデバイス一覧を表示
-3. Simple の射出 → 停止
-4. Intensity の射出 → 停止
+3. Simple の噴射 → 停止
+4. Intensity の噴射 → 停止
 
 ---
 
@@ -153,19 +153,19 @@ var bleDevices = ble.GetConnectedDevices(); // 接続中のデバイス名の Li
 
 ---
 
-<a id="1-simple-射出-api"></a>
+<a id="1-simple-噴射-api"></a>
 
-### 1. Simple 射出 API
+### 1. Simple 噴射 API
 
 `AromaShooterControllerUSB.SharedInstance` と `AromaShooterControllerBLE.SharedInstance` の両方に、同名のメソッドとして用意されています（以下の例では `usb` を使用していますが、BLE デバイスの場合は `ble` に置き換えてください）:
 
-全デバイスへ射出:
+全デバイスへ噴射:
 
 ```csharp
 usb.ShootAllSimple(3000, new int[] { 1, 2, 5 }, internalBooster: true);
 ```
 
-特定デバイスへ射出:
+特定デバイスへ噴射:
 
 ```csharp
 usb.ShootSimple(3000, new int[] { 1, 2, 5 }, true, "ASN3A01192");
@@ -185,9 +185,9 @@ usb.StopSimple("ASN3A01192");
 
 ---
 
-<a id="2-intensity-射出-api"></a>
+<a id="2-intensity-噴射-api"></a>
 
-### 2. Intensity 射出 API
+### 2. Intensity 噴射 API
 
 `AromaChamber`:
 
@@ -199,7 +199,7 @@ public class AromaChamber
 }
 ```
 
-強度制御ありで全デバイスへ射出:
+強度制御ありで全デバイスへ噴射:
 
 ```csharp
 var chambers = new List<AromaChamber>
@@ -216,7 +216,7 @@ usb.ShootAllWithIntensity(
 );
 ```
 
-強度制御ありで特定デバイスへ射出:
+強度制御ありで特定デバイスへ噴射:
 
 ```csharp
 usb.ShootWithIntensity(
