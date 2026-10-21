@@ -2,7 +2,7 @@
 
 # Aroma Shooter SDK (Windows)
 
-**Version 3.0.0**
+**Version 4.0.0**
 
 **USB** および / または **BLE** 経由で Aroma Shooter デバイスに接続し、制御するための Windows .NET SDK です。
 

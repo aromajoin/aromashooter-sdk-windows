@@ -2,7 +2,7 @@
 
 # Aroma Shooter SDK (Windows)
 
-**Version 3.0.0**
+**Version 4.0.0**
 
 A Windows .NET SDK for connecting to and controlling Aroma Shooter devices via **USB** and/or **BLE**.
 
