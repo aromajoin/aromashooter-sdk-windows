@@ -6,7 +6,7 @@
 
 **USB** および / または **BLE** 経由で Aroma Shooter デバイスに接続し、制御するための Windows .NET SDK です。
 
-> **重要 — 香りを噴射するには内部ブースターが必須です。** 噴射のたびに有効にしてください: シンプル API では `internalBooster: true`、強度 API では `internalBoosterIntensity > 0`。内部ブースターがオフの場合、香りは出ません。
+> **重要 — 香りを噴射するには inner booster が必須です。** 噴射のたびに有効にしてください: シンプル API では `innerBooster: true`、強度 API では `innerBoosterIntensity > 0`。inner booster がオフの場合、香りは出ません。
 
 本 SDK は**単一の DLL** として提供されます:
 
@@ -162,7 +162,7 @@ var bleDevices = ble.GetConnectedDevices(); // 接続中のデバイス名の Li
 全デバイスへ噴射:
 
 ```csharp
-usb.ShootAllSimple(3000, new int[] { 1, 2, 5 }, internalBooster: true);
+usb.ShootAllSimple(3000, new int[] { 1, 2, 5 }, innerBooster: true);
 ```
 
 特定デバイスへ噴射:
@@ -211,8 +211,8 @@ var chambers = new List<AromaChamber>
 usb.ShootAllWithIntensity(
     3000,
     chambers,
-    internalBoosterIntensity: 100,
-    externalBoosterIntensity: 0
+    innerBoosterIntensity: 100,
+    outerBoosterIntensity: 0
 );
 ```
 
@@ -222,8 +222,8 @@ usb.ShootAllWithIntensity(
 usb.ShootWithIntensity(
     3000,
     chambers,
-    internalBoosterIntensity: 100,
-    externalBoosterIntensity: 0,
+    innerBoosterIntensity: 100,
+    outerBoosterIntensity: 0,
     deviceSerial: "ASN3A01192"
 );
 ```
@@ -233,8 +233,8 @@ usb.ShootWithIntensity(
 ```csharp
 usb.StopAllWithIntensity(
     chambers: new[] { 1, 2 },
-    stopInternalBooster: true,
-    stopExternalBooster: false
+    stopInnerBooster: true,
+    stopOuterBooster: false
 );
 ```
 
@@ -244,8 +244,8 @@ usb.StopAllWithIntensity(
 usb.StopWithIntensity(
     "ASN3A01192",
     chambers: new[] { 1, 2 },
-    stopInternalBooster: true,
-    stopExternalBooster: false
+    stopInnerBooster: true,
+    stopOuterBooster: false
 );
 ```
 

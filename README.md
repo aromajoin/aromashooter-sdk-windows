@@ -6,7 +6,7 @@
 
 A Windows .NET SDK for connecting to and controlling Aroma Shooter devices via **USB** and/or **BLE**.
 
-> **Important — the internal booster is required for scent to be emitted.** Enable it on every shoot: pass `internalBooster: true` (simple API) or `internalBoosterIntensity > 0` (intensity API). With the internal booster off, no scent comes out.
+> **Important — the inner booster is required for scent to be emitted.** Enable it on every shoot: pass `innerBooster: true` (simple API) or `innerBoosterIntensity > 0` (intensity API). With the inner booster off, no scent comes out.
 
 This SDK ships as a **single DLL**:
 
@@ -162,7 +162,7 @@ Available on both `AromaShooterControllerUSB.SharedInstance` and `AromaShooterCo
 Shoot all connected devices:
 
 ```csharp
-usb.ShootAllSimple(3000, new int[] { 1, 2, 5 }, internalBooster: true);
+usb.ShootAllSimple(3000, new int[] { 1, 2, 5 }, innerBooster: true);
 ```
 
 Shoot a specific device:
@@ -211,8 +211,8 @@ var chambers = new List<AromaChamber>
 usb.ShootAllWithIntensity(
     3000,
     chambers,
-    internalBoosterIntensity: 100,
-    externalBoosterIntensity: 0
+    innerBoosterIntensity: 100,
+    outerBoosterIntensity: 0
 );
 ```
 
@@ -222,8 +222,8 @@ Shoot a specific device with intensity control:
 usb.ShootWithIntensity(
     3000,
     chambers,
-    internalBoosterIntensity: 100,
-    externalBoosterIntensity: 0,
+    innerBoosterIntensity: 100,
+    outerBoosterIntensity: 0,
     deviceSerial: "ASN3A01192"
 );
 ```
@@ -233,8 +233,8 @@ Stop with intensity (per chamber):
 ```csharp
 usb.StopAllWithIntensity(
     chambers: new[] { 1, 2 },
-    stopInternalBooster: true,
-    stopExternalBooster: false
+    stopInnerBooster: true,
+    stopOuterBooster: false
 );
 ```
 
@@ -244,8 +244,8 @@ Stop a specific device with intensity (per chamber):
 usb.StopWithIntensity(
     "ASN3A01192",
     chambers: new[] { 1, 2 },
-    stopInternalBooster: true,
-    stopExternalBooster: false
+    stopInnerBooster: true,
+    stopOuterBooster: false
 );
 ```
 

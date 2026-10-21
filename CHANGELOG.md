@@ -1,5 +1,14 @@
 Change Log
 ===
+Version 4.0.0 *(2026-10-21)*
+----------------------------
+* BREAKING: booster parameters renamed internal/external -> inner/outer on both controllers (USB + BLE)
+  * `internalBooster` -> `innerBooster`, `internalBoosterIntensity` -> `innerBoosterIntensity`, `externalBoosterIntensity` -> `outerBoosterIntensity`, `stopInternalBooster` -> `stopInnerBooster`, `stopExternalBooster` -> `stopOuterBooster`
+  * Identifiers only — no wire-protocol or behavioral change. Positional calls are unaffected; only named-argument callers need updating. No deprecated aliases.
+  * Same rename ships across every AromaShooter SDK and firmware 2.2.2 (Wi-Fi JSON keys)
+* rebuild `AromaShooterWindowsSDK.dll`
+
+
 Version 3.0.0 *(2026-07-16)*
 ----------------------------
 * BREAKING: rename SDK assembly & namespace `ASControllerSDK` -> `AromaShooterWindowsSDK`
