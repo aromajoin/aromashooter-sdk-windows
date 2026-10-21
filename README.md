@@ -2,7 +2,7 @@
 
 # Aroma Shooter SDK (Windows)
 
-**Version 4.0.0**
+**Version 4.1.0**
 
 A Windows .NET SDK for connecting to and controlling Aroma Shooter devices via **USB** and/or **BLE**.
 
@@ -50,7 +50,7 @@ Both controllers expose the same shooting/stopping API shape (simple + intensity
 -   USB:
     -   The device must be recognized as a serial/COM device (install the proper USB-serial driver if required)
 -   BLE:
-    -   A Bluetooth LE capable adapter and Windows BLE support
+    -   A Bluetooth LE capable adapter and Windows 10/11 BLE support. No pairing in Windows settings is needed.
 
 ---
 
@@ -110,7 +110,7 @@ Build and run:
 
 The sample will:
 
-1. Connect via `AromaShooterControllerUSB.SharedInstance.ScanAndConnect()` and/or `await AromaShooterControllerBLE.SharedInstance.ScanAndConnect()`
+1. Connect via `AromaShooterControllerUSB.SharedInstance.ScanAndConnect()`; for BLE, `await Discover()` lists the advertising devices and `await Connect(...)` connects to the chosen one (or to all)
 2. Print discovered devices
 3. Run a simple shoot + stop sequence
 4. Run an intensity shoot + stop sequence
@@ -138,16 +138,21 @@ usb.ScanAndConnect();
 var usbDevices = usb.GetConnectedDevices(); // List<string> of connected serials
 ```
 
-BLE (asynchronous scan — must be awaited):
+BLE (asynchronous, no Windows pairing). Discover first, then connect to the device the user picks:
 
 ```csharp
 using AromaShooterWindowsSDK;
 
 var ble = AromaShooterControllerBLE.SharedInstance;
-var found = await ble.ScanAndConnect(); // List<string> of devices found during this scan
+List<AromaBleDevice> found = await ble.Discover(3000);   // listen for 3 s; Serial / AddressText / Rssi per device
+foreach (var d in found) Console.WriteLine(d);           // e.g. "ASN3A01390 (24:6F:28:AA:BB:CC, -61 dBm)"
 
-var bleDevices = ble.GetConnectedDevices(); // List<string> of connected device names
+bool ok = await ble.Connect(found[index]);               // the one the user picked (or ble.Connect("ASN3A01390"))
+
+var bleDevices = ble.GetConnectedDevices(); // List<string> of connected device serials
 ```
+
+`await ble.ScanAndConnect()` (or `ScanAndConnect(durationMillisec)`) does both steps and connects to every Aroma Shooter heard. Devices already connected are left alone by both calls: a connected Aroma Shooter stops advertising, so it does not appear in a later `Discover()` (use `GetConnectedDevices()` for those). A device heard again while a link to it exists has dropped that link (power cycle, out of range) and is reconnected.
 
 Each controller's `GetConnectedDevices()` returns a plain `List<string>` of device serials/names — there is no `{Transport, Identifier, DisplayName}` object. Since you already chose the controller, you know the transport; if you need to correlate a serial across both transports, track that mapping yourself.
 
@@ -275,9 +280,9 @@ bool ok = usb.Connect("COM5");     // connect to a specific COM port without sca
 BLE:
 
 ```csharp
-ble.DisconnectAll();               // release GATT services for all connected devices
-ble.Disconnect("ASN3A01192");      // release a single device
-await ble.Reconnect();             // re-discover & reconnect (equivalent to ScanAndConnect)
+ble.DisconnectAll();               // stop every device, then release its GATT link
+ble.Disconnect("ASN3A01192");      // stop and release a single device
+await ble.Reconnect();             // discover again and connect to what is heard (equivalent to ScanAndConnect)
 ```
 
 > **`Disconnect(name)` (USB and BLE).** `name` is the device serial from `GetConnectedDevices()` (e.g. `"ASN3A01192"`). Only that device is released; other connected devices stay connected. Exact match (case-sensitive); an unknown name is ignored silently.
@@ -292,7 +297,7 @@ await ble.Reconnect();             // re-discover & reconnect (equivalent to Sca
 
 -   No devices found:
     -   USB: call `usb.ScanAndConnect()` first, then check COM port / driver installation
-    -   BLE: call `await ble.ScanAndConnect()` first; ensure the device is paired/available and Bluetooth LE is enabled
+    -   BLE: call `await ble.Discover()` (or `ScanAndConnect()`) first. Nothing heard means Bluetooth is off, the device is off or out of range, or it is already connected to another host (a connected Aroma Shooter stops advertising); try a longer duration. `Connect` returns false when the device moved out of range since the discovery.
 -   Calling the wrong controller:
     -   USB and BLE devices are handled by two separate controllers (`AromaShooterControllerUSB`, `AromaShooterControllerBLE`); make sure you're using the one that matches your device's connection
     -   Re-run `ScanAndConnect()` and confirm `GetConnectedDevices()` returns devices

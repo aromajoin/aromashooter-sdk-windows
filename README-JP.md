@@ -2,7 +2,7 @@
 
 # Aroma Shooter SDK (Windows)
 
-**Version 4.0.0**
+**Version 4.1.0**
 
 **USB** および / または **BLE** 経由で Aroma Shooter デバイスに接続し、制御するための Windows .NET SDK です。
 
@@ -50,7 +50,7 @@
 -   USB:
     -   デバイスがシリアル/COM として認識されること（必要に応じて USB-シリアルドライバを導入）
 -   BLE:
-    -   Bluetooth LE 対応アダプタ、および Windows の BLE サポート
+    -   Bluetooth LE 対応アダプタ、および Windows 10/11 の BLE サポート。Windows 設定でのペアリングは不要です。
 
 ---
 
@@ -110,7 +110,7 @@ AromaShooterWindowsSDK/
 
 サンプルは以下を行います:
 
-1. `AromaShooterControllerUSB.SharedInstance.ScanAndConnect()` および/または `await AromaShooterControllerBLE.SharedInstance.ScanAndConnect()` で接続
+1. `AromaShooterControllerUSB.SharedInstance.ScanAndConnect()` で接続。BLE は `await Discover()` でアドバタイズ中のデバイスを一覧し、`await Connect(...)` で選んだデバイス（またはすべて）に接続
 2. 検出したデバイス一覧を表示
 3. シンプルの噴射 → 停止
 4. 強度の噴射 → 停止
@@ -138,16 +138,21 @@ usb.ScanAndConnect();
 var usbDevices = usb.GetConnectedDevices(); // 接続中のシリアル番号の List<string>
 ```
 
-BLE（非同期スキャン — await が必要）:
+BLE（非同期、Windows でのペアリング不要）。まず検出し、ユーザーが選んだデバイスに接続します:
 
 ```csharp
 using AromaShooterWindowsSDK;
 
 var ble = AromaShooterControllerBLE.SharedInstance;
-var found = await ble.ScanAndConnect(); // このスキャンで見つかったデバイス名の List<string>
+List<AromaBleDevice> found = await ble.Discover(3000);   // 3 秒間受信。デバイスごとに Serial / AddressText / Rssi
+foreach (var d in found) Console.WriteLine(d);           // 例: "ASN3A01390 (24:6F:28:AA:BB:CC, -61 dBm)"
 
-var bleDevices = ble.GetConnectedDevices(); // 接続中のデバイス名の List<string>
+bool ok = await ble.Connect(found[index]);               // ユーザーが選んだデバイス（または ble.Connect("ASN3A01390")）
+
+var bleDevices = ble.GetConnectedDevices(); // 接続中のデバイスシリアルの List<string>
 ```
+
+`await ble.ScanAndConnect()`（または `ScanAndConnect(durationMillisec)`）は両方の手順を行い、受信したすべての Aroma Shooter に接続します。どちらの呼び出しも接続済みのデバイスには触れません。接続中の Aroma Shooter はアドバタイズを止めるため、後の `Discover()` には現れません（`GetConnectedDevices()` で確認してください）。リンクを保持しているデバイスが再び聞こえた場合、そのリンクは切れています（電源の入れ直し、範囲外）ので再接続されます。
 
 各コントローラーの `GetConnectedDevices()` は、単純な `List<string>`（デバイスのシリアル/名前）を返します。`{Transport, Identifier, DisplayName}` のようなオブジェクトはありません。どのコントローラーを使ったかで既にトランスポートは分かっているため、両トランスポート間でシリアルを紐づけたい場合はアプリ側で管理してください。
 
@@ -275,9 +280,9 @@ bool ok = usb.Connect("COM5");     // 全ポートをスキャンせず特定の
 BLE:
 
 ```csharp
-ble.DisconnectAll();               // 全接続デバイスの GATT サービスを解放
-ble.Disconnect("ASN3A01192");      // 特定デバイスを解放
-await ble.Reconnect();             // 再探索して再接続（ScanAndConnect 相当）
+ble.DisconnectAll();               // 全デバイスを停止してから GATT リンクを解放
+ble.Disconnect("ASN3A01192");      // 特定デバイスを停止して解放
+await ble.Reconnect();             // 再検出して聞こえたデバイスに接続（ScanAndConnect 相当）
 ```
 
 > **`Disconnect(name)`（USB・BLE 共通）.** `name` は `GetConnectedDevices()` が返すデバイスのシリアル名（例：`"ASN3A01192"`）。その 1 台だけを解放し、他の接続中デバイスはそのまま維持します。完全一致（大文字小文字を区別）で、存在しない名前は何もせず無視します。
@@ -292,7 +297,7 @@ await ble.Reconnect();             // 再探索して再接続（ScanAndConnect 
 
 -   デバイスが見つからない:
     -   USB: 先に `usb.ScanAndConnect()` を呼び、COM ポート/ドライバを確認
-    -   BLE: 先に `await ble.ScanAndConnect()` を呼び、ペアリング済みか、Bluetooth LE が有効か確認
+    -   BLE: 先に `await ble.Discover()`（または `ScanAndConnect()`）を呼ぶ。何も聞こえない場合は Bluetooth がオフ、デバイスの電源オフまたは範囲外、あるいは他のホストに接続中（接続中の Aroma Shooter はアドバタイズを止めます）。時間を長くして試してください。検出後にデバイスが範囲外に出ると `Connect` は false を返します。
 -   コントローラーの選び間違い:
     -   USB と BLE は別々のコントローラー（`AromaShooterControllerUSB`、`AromaShooterControllerBLE`）で扱われます。デバイスの接続方式に合ったコントローラーを使用しているか確認してください
     -   `ScanAndConnect()` を再実行し、`GetConnectedDevices()` の結果を確認

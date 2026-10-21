@@ -1,5 +1,21 @@
 Change Log
 ===
+Version 4.1.0 *(2026-10-21)*
+----------------------------
+* BLE: no Windows pairing needed any more. The controller listens to the Aroma Shooters' advertisements and connects directly
+  * `Discover(durationMillisec = 3000)` returns the devices heard as `List<AromaBleDevice>` (`Serial`, `Address`, `AddressText`, `Rssi`) without connecting; `GetDiscoveredDevices()` returns the last result
+  * `Connect(AromaBleDevice)` / `Connect(string deviceSerial)` connect to the device the user picked (`Task<bool>`)
+  * `ScanAndConnect()` / `ScanAndConnect(int durationMillisec)` discover and connect to every device heard; devices already connected stay connected (a connected Aroma Shooter stops advertising); a device heard again while its link is down is reconnected. The returned list is now every connected serial, not only the ones added by this call
+  * after `Disconnect` / `DisconnectAll`, Windows needs a few seconds to drop the link before the device advertises again; wait before `Discover` / `Reconnect`
+  * the link is held open (`GattSession.MaintainConnection`) so writes do not pay for a reconnect
+* BLE fixes
+  * `StopAllWithIntensity` / `StopWithIntensity` now really stop the listed chambers and boosters (they sent NO CHANGE instead of OFF); the intensity frame uses the same OFF / ON / NO CHANGE states as USB
+  * `DisconnectAll` / `Disconnect` send stop frames before releasing the link (a dropped link alone does not stop a running shoot)
+  * shoot/stop calls on an unknown serial or a dropped link no longer throw inside the async call
+* `Windows.winmd` updated to the Windows 10 SDK 10.0.20348 metadata (needed for the GATT session API); .NET Framework 4.7.2 unchanged
+* rebuild `AromaShooterWindowsSDK.dll`
+
+
 Version 4.0.0 *(2026-10-21)*
 ----------------------------
 * BREAKING: booster parameters renamed internal/external -> inner/outer on both controllers (USB + BLE)
